@@ -60,6 +60,6 @@ class Lane:
     def to_json(self):
         # make sure it doesn't produce a string
         return {
-            "has_car_waiting": self._has_car_waiting,
-            "has_priority_vehicle": self._has_priority_vehicle,
+            "detectielus": self._has_car_waiting,
+            "prioriteit": self._has_priority_vehicle,
         }
