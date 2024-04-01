@@ -17,6 +17,14 @@ class Road:
 
     def to_json(self):
         # serialize the object to json
-        return json.dumps({
-            self._name: [lane.to_json() for lane in self._lanes]
-        }, indent=4)
+        return {
+            self._name: {
+                "Cars":
+                    [lane.to_json() for lane in self._lanes]
+            }
+        }
+
+    def from_json(self, data):
+        if self._name in data and "Cars" in data[self._name]:
+            for i, lane in enumerate(self._lanes):
+                lane.from_json(data[self._name]["Cars"][i])

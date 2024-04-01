@@ -1,17 +1,27 @@
+import math
+
 from pygame import transform
 from pygame.math import Vector2
 
 
 class Car:
-    def __init__(self, speed, position, direction, sprite):
+    def __init__(self, speed, position, sprite, destination):
         self._speed = speed
         self._position = position
-        self._direction = direction.normalize()
+        self._direction = (destination - position).normalize()
+        self._original_sprite = sprite
         self._sprite = sprite
+        self._destination = destination
+        self._current_rotation = 90
         self.__set_direction_of_sprite()
 
     def __set_direction_of_sprite(self):
-        self._sprite = transform.rotate(self._sprite, self._direction.angle_to(Vector2(0, 1)))
+        # Rotate the sprite to face the direction of the car, take into account the current rotation of the sprite
+        # and the angle between the current direction and the new direction
+        angle = self._direction.angle_to(Vector2(1, 0)) - self._current_rotation
+        self._current_rotation += angle
+        self._sprite = transform.rotate(self._sprite, angle)
+
         self._sprite.set_colorkey((255, 255, 255))
 
     def set_speed(self, speed):
@@ -40,6 +50,15 @@ class Car:
     def get_sprite(self):
         return self._sprite
 
+    def get_original_sprite(self):
+        return self._original_sprite
+
+    def get_current_rotation(self):
+        return self._current_rotation
+
+    def get_destination(self):
+        return self._destination
+
     def move(self):
         self._position += self._direction * self._speed
 
@@ -48,6 +67,11 @@ class Car:
 
     def stop(self):
         self._speed = 0
+
+    def move_to(self, position):
+        self._destination = position
+        self._direction = (position - self._position).normalize()
+        self.__set_direction_of_sprite()
 
     # def is_out_of_screen(self, screen):
     #     return self._position.x < 0 or self._position.x > screen.get_width() or self._position.y < 0 or self._position.y > screen.get_height()

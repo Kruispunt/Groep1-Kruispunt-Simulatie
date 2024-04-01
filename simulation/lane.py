@@ -1,22 +1,32 @@
 import json
+from random import randint
 
 from simulation.car import Car
+from simulation.enums.state import State
 from simulation.light import Light
-from pygame import image, Vector2
+from pygame import image, Vector2, transform
 
 
 class Lane:
-    def __init__(self, direction, start_position, light_position):
+    def __init__(self, direction, start_position, inbetween_positions, light_position):
+        if not inbetween_positions:
+            assert False, "inbetween_positions is empty"
+
         self._start_position = start_position
+        self._inbetween_positions = inbetween_positions
         self._light_position = light_position
         self._direction = direction
         self._light = Light()
         self._cars = []
         self._has_car_waiting = False
+        self._has_car_waiting_far = False
         self._has_priority_vehicle = False
 
     def get_start_position(self):
         return self._start_position
+
+    def get_inbetween_positions(self):
+        return self._inbetween_positions
 
     def get_light_position(self):
         return self._light_position
@@ -25,8 +35,21 @@ class Lane:
         return self._direction
 
     def add_car(self):
-        self._cars.append(Car(1, Vector2(self._start_position), self._light_position - self._start_position,
-                              image.load("simulation/images/car.png")))
+        car_image = image.load("simulation/images/car" + randint(0, 1).__str__() + ".png")
+        # make sure the aspect ratio is correct, width is 50
+        original_width, original_height = car_image.get_size()
+
+        # Calculate the height while maintaining the aspect ratio
+        scaled_width = int(40 * (original_width / original_height))
+        car_image = transform.scale(car_image, (scaled_width, 40))
+
+        position = self._start_position.copy()
+
+        if (self._cars and self._start_position.dot(self._cars[-1].get_position()) >= 0
+                and self._cars[-1].get_destination() == self._light_position):
+            position = self._cars[-1].get_position() - (self._light_position - self._start_position).normalize() * (40 + 10)
+
+        self._cars.append(Car(2.5, position, car_image, self._light_position))
 
     def remove_car(self, car):
         self._cars.remove(car)
@@ -39,6 +62,12 @@ class Lane:
 
     def set_has_car_waiting(self, has_car_waiting):
         self._has_car_waiting = has_car_waiting
+
+    def has_car_waiting_far(self):
+        return self._has_car_waiting_far
+
+    def set_has_car_waiting_far(self, has_car_waiting_far):
+        self._has_car_waiting_far = has_car_waiting_far
 
     def has_priority_vehicle(self):
         return self._has_priority_vehicle
@@ -60,6 +89,10 @@ class Lane:
     def to_json(self):
         # make sure it doesn't produce a string
         return {
-            "detectielus": self._has_car_waiting,
-            "prioriteit": self._has_priority_vehicle,
+            "DetectNear": self._has_car_waiting,
+            "DetectFar": self._has_car_waiting_far,
+            "PrioCar": self._has_priority_vehicle,
         }
+
+    def from_json(self, data):
+        self._light.change(State(data))
