@@ -1,4 +1,5 @@
 import threading
+from itertools import count
 from random import randint
 
 import pygame
@@ -75,8 +76,8 @@ def button_presses():
 def draw_cars():
     for road in intersection.get_roads():
         for lane in road.get_lanes():
-            lane.set_has_car_waiting_far(len(lane.get_cars()) >= 5 and lane.get_light().get_state() == State.red)
-            lane.set_has_car_waiting(len(lane.get_cars()) >= 1 and lane.get_light().get_state() == State.red)
+            lane.set_has_car_waiting(sum([1 for car in lane.get_cars() if car.get_destination() == lane.get_light_position()]) >= 1)
+            lane.set_has_car_waiting_far(sum([1 for car in lane.get_cars() if car.get_destination() == lane.get_light_position()]) >= 5)
 
             for car in lane.get_cars():
                 if car.get_destination() == lane.get_light_position():
