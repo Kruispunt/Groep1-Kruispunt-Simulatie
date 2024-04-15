@@ -8,19 +8,19 @@ from pygame import image, Vector2, transform
 
 
 class Lane:
-    def __init__(self, direction, start_position, inbetween_positions, light_position):
+    def __init__(self, start_position, inbetween_positions, light_position, connection=None, spawnable=True):
         if not inbetween_positions:
             assert False, "inbetween_positions is empty"
-
         self._start_position = start_position
         self._inbetween_positions = inbetween_positions
         self._light_position = light_position
-        self._direction = direction
+        self._connection = connection
         self._light = Light()
         self._cars = []
         self._has_car_waiting = False
         self._has_car_waiting_far = False
         self._has_priority_vehicle = False
+        self._spawnable = spawnable
 
     def get_start_position(self):
         return self._start_position
@@ -31,17 +31,21 @@ class Lane:
     def get_light_position(self):
         return self._light_position
 
-    def get_direction(self):
-        return self._direction
+    def get_connection(self):
+        return self._connection
 
-    def add_car(self):
-        car_image = image.load("simulation/images/car" + randint(0, 1).__str__() + ".png")
+    def is_spawnable(self):
+        return self._spawnable
+
+    def add_car(self, sprite=None):
+        if sprite is None:
+            sprite = image.load("simulation/images/car" + randint(0, 1).__str__() + ".png")
         # make sure the aspect ratio is correct, width is 50
-        original_width, original_height = car_image.get_size()
+        original_width, original_height = sprite.get_size()
 
         # Calculate the height while maintaining the aspect ratio
         scaled_width = int(40 * (original_width / original_height))
-        car_image = transform.scale(car_image, (scaled_width, 40))
+        car_image = transform.scale(sprite, (scaled_width, 40))
 
         position = self._start_position.copy()
 
@@ -49,7 +53,7 @@ class Lane:
                 and self._cars[-1].get_destination() == self._light_position):
             position = self._cars[-1].get_position() - (self._light_position - self._start_position).normalize() * (40 + 10)
 
-        self._cars.append(Car(2.5, position, car_image, self._light_position))
+        self._cars.append(Car(3, position, car_image, self._light_position))
 
     def remove_car(self, car):
         self._cars.remove(car)
@@ -75,8 +79,11 @@ class Lane:
     def set_has_priority_vehicle(self, has_priority_vehicle):
         self._has_priority_vehicle = has_priority_vehicle
 
-    def get_light(self):
-        return self._light
+    def change_light(self, state):
+        self._light.change(state)
+
+    def light_state(self):
+        return self._light.get_state()
 
     def is_car_at_light(self, car):
         # only check if car is in front of light

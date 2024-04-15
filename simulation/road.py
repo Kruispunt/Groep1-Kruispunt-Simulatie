@@ -1,9 +1,13 @@
 import json
+from email.mime import image
+
+from pygame import transform
 
 
 class Road:
     def __init__(self, name):
         self._lanes = []
+        self._cyclists = []
         self._name = name
 
     def add_lane(self, lane):

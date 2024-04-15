@@ -12,7 +12,7 @@ class Client:
         self._s.send(message.encode())
 
     def receive(self):
-        return self._s.recv(1024).decode()
+        return self._s.recv(2048).decode()
 
     def close(self):
         self._s.close()

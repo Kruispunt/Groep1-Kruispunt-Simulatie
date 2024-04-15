@@ -5,7 +5,6 @@ from random import randint
 import pygame
 
 from connection.client import Client
-from simulation.enums.direction import Direction
 from simulation.intersection import Intersection
 from simulation.lane import Lane
 from simulation.light import Light
@@ -13,57 +12,37 @@ from simulation.enums.state import State
 from pygame import *
 
 from simulation.road import Road
+from simulation.simulation import Simulation
 
 init()
 display.set_caption("Simulation")
 light = Light()
 running = True
 
-intersection = Intersection(1400, 800, "1")
+simulation = Simulation(1400, 800)
 
 # change screen size to 1400x800
-screen = display.set_mode((1400, 800))
-
-roadA = Road("A")
-roadA.add_lane(Lane(Direction.east, Vector2(0, 418), [Vector2(977, 469)], Vector2(80, 427)))
-roadA.add_lane(Lane(Direction.east, Vector2(0, 451), [Vector2(0, 0)], Vector2(80, 455)))
-roadA.add_lane(Lane(Direction.east, Vector2(0, 475), [Vector2(185, 517), Vector2(227, 561), Vector2(246, 612), Vector2(245, 774)],Vector2(80, 485)))
-roadA.add_lane(Lane(Direction.east, Vector2(0, 500), [Vector2(155, 533), Vector2(220, 572), Vector2(220, 748), ],Vector2(75, 516)))
-
-roadB = Road("B")
-roadB.add_lane(Lane(Direction.west, Vector2(293, 797),[Vector2(289, 575), Vector2(260, 466), Vector2(180, 342), Vector2(107, 314), Vector2(-100, 317)],Vector2(293, 650)))
-roadB.add_lane(Lane(Direction.west, Vector2(1400, 451), [Vector2(0, 0)], Vector2(1288, 455)))
-roadB.add_lane(Lane(Direction.west, Vector2(1400, 475), [Vector2(0, 0)], Vector2(1294, 485)))
-roadB.add_lane(Lane(Direction.west, Vector2(360, 798), [Vector2(372, 520), Vector2(455, 410), Vector2(975, 420)],Vector2(358, 650)))
-
-roadC = Road("C")
-roadC.add_lane(Lane(Direction.south, Vector2(667, 362), [Vector2(335, 375), Vector2(285, 434), Vector2(222, 579), Vector2(218, 800)], Vector2(435, 363)))
-roadC.add_lane(Lane(Direction.south, Vector2(0, 0), [Vector2(0, 0)], Vector2(0, 0)))
-roadC.add_lane(Lane(Direction.south, Vector2(0, 0), [Vector2(0, 0)], Vector2(0, 0)))
-roadC.add_lane(Lane(Direction.south, Vector2(667, 286), [Vector2(-50, 281)], Vector2(435, 286)))
-
-intersection.add_road(roadA)
-intersection.add_road(roadB)
-intersection.add_road(roadC)
+screen = display.set_mode((simulation.get_width(), simulation.get_height()))
 
 clock = time.Clock()
 
 
 def button_presses():
     # get random lane
-    random_num = 0 if randint(0, 1) == 0 else 3
-    road = intersection.get_roads()[randint(0, 2)]
+    road = simulation.intersections[randint(0, 1)].get_roads()[randint(0, 2)]
+
+    random_num = randint(0, len(road.get_lanes()) - 1)
     lane = road.get_lanes()[random_num]
 
     # if g is pressed, change light to green
     if key.get_pressed()[K_g]:
         for lane2 in road.get_lanes():
-            lane2.get_light().change(State.green)
+            lane2.change_light(State.green)
 
     # if r is pressed, change light to red
     if key.get_pressed()[K_r]:
         for lane2 in road.get_lanes():
-            lane2.get_light().change(State.red)
+            lane2.change_light(State.red)
 
     # if c is pressed, add a car
     if key.get_pressed()[K_c]:
@@ -74,59 +53,84 @@ def button_presses():
 
 
 def draw_cars():
-    for road in intersection.get_roads():
-        for lane in road.get_lanes():
-            lane.set_has_car_waiting(sum([1 for car in lane.get_cars() if car.get_destination() == lane.get_light_position()]) >= 1)
-            lane.set_has_car_waiting_far(sum([1 for car in lane.get_cars() if car.get_destination() == lane.get_light_position()]) >= 5)
+    for intersection in simulation.intersections:
+        for road in intersection.get_roads():
+            for lane in road.get_lanes():
+                lane.set_has_car_waiting(
+                    sum([1 for car in lane.get_cars() if car.get_destination() == lane.get_light_position()]) >= 1)
+                lane.set_has_car_waiting_far(
+                    sum([1 for car in lane.get_cars() if car.get_destination() == lane.get_light_position()]) >= 5)
 
-            for car in lane.get_cars():
-                if car.get_destination() == lane.get_light_position():
-                    if car.get_position().distance_to(lane.get_light_position()) < 5:
-                        if lane.get_light().get_state() != State.red:
-                            car.move()
+                for car in lane.get_cars():
+                    is_moving = True
+                    # car destination is at light
+                    if car.get_destination() == lane.get_light_position():
+                        if car.get_position().distance_to(lane.get_light_position()) < 5:
+                            if lane.light_state() == State.red:
+                                is_moving = False
+                    # car destination is not at light
                     else:
-                        index = lane.get_cars().index(car)
-                        if index > 0:
-                            if not lane.get_cars()[index - 1].get_position().distance_to(car.get_position()) < 40:
-                                car.move()
-                        else:
-                            car.move()
-                else:
-                    car.move()
-                if car.get_direction().dot(car.get_destination() - car.get_position()) < 0:
-                    # move car to the next position
-                    if lane.get_inbetween_positions():
-                        # check for each position in the inbetween positions if the car destination is the same with lambda
-                        next_position_index = next(
-                            (i for i, x in enumerate(lane.get_inbetween_positions()) if x == car.get_destination()),
-                            -1) + 1
+                        next_car = None
+                        if lane.get_connection() is not None:
+                            next_car = None if len(lane.get_connection().get_cars()) == 0 else lane.get_connection().get_cars()[-1]
+                        if next_car is not None:
+                            distance = car.get_position().distance_to(next_car.get_position())
+                            if distance < 40:
+                                is_moving = False
+                    index = lane.get_cars().index(car)
 
-                        if next_position_index < len(lane.get_inbetween_positions()):
-                            car.move_to(lane.get_inbetween_positions()[next_position_index])
-                        else:
-                            car.move_to(lane.get_light_position())
-                            lane.remove_car(car)
+                    if index > 0 and lane.get_cars()[index - 1].get_position().distance_to(car.get_position()) < 40:
+                        is_moving = False
 
-                scaled_width = int(car.get_original_sprite().get_width() * scale_factor)
-                scaled_height = int(car.get_original_sprite().get_height() * scale_factor)
-                scaled_car_image = pygame.transform.scale(car.get_original_sprite(), (scaled_width, scaled_height))
-                scaled_car_image = transform.rotate(scaled_car_image, car.get_direction().angle_to(Vector2(1, 0)) - 90)
-                scaled_car_image.set_colorkey((255, 255, 255))
+                    if is_moving:
+                        car.move()
+                    if car.get_direction().dot(car.get_destination() - car.get_position()) < 0:
+                        # move car to the next position
+                        if lane.get_inbetween_positions():
+                            # check for each position in the inbetween positions if the car destination is the same with lambda
+                            next_position_index = next(
+                                (i for i, x in enumerate(lane.get_inbetween_positions()) if x == car.get_destination()),
+                                -1) + 1
 
-                # adjust car position to the new scale
-                scaled_position = (
-                car.get_position()[0] * scale_factor + offset_x, car.get_position()[1] * scale_factor + offset_y)
+                            if next_position_index < len(lane.get_inbetween_positions()):
+                                car.move_to(lane.get_inbetween_positions()[next_position_index])
+                            else:
+                                if lane.get_connection() is not None:
+                                    lane.get_connection().add_car(car.get_original_sprite())
+                                lane.remove_car(car)
 
-                screen.blit(scaled_car_image, scaled_position)
+                    scaled_width = int(car.get_original_sprite().get_width() * scale_factor)
+                    scaled_height = int(car.get_original_sprite().get_height() * scale_factor)
+                    scaled_car_image = pygame.transform.scale(car.get_original_sprite(), (scaled_width, scaled_height))
+                    scaled_car_image = transform.rotate(scaled_car_image,
+                                                        car.get_direction().angle_to(Vector2(1, 0)) - 90)
+                    scaled_car_image.set_colorkey((255, 255, 255))
+
+                    # adjust car position to the new scale
+                    scaled_position = (
+                        car.get_position()[0] * scale_factor + offset_x,
+                        car.get_position()[1] * scale_factor + offset_y)
+
+                    screen.blit(scaled_car_image, scaled_position)
 
 
+def show_lights():
+    for intersection in simulation.intersections:
+        for road in intersection.get_roads():
+            for lane in road.get_lanes():
+                if lane.light_state() == State.red:
+                    draw.circle(screen, (255, 0, 0), lane.get_light_position(), 5)
+                elif lane.light_state() == State.green:
+                    draw.circle(screen, (0, 255, 0), lane.get_light_position(), 5)
+                elif lane.light_state() == State.orange:
+                    draw.circle(screen, (255, 255, 0), lane.get_light_position(), 5)
 
 def listen_to_server():
     try:
         while running:
             message = client.receive()
             print('Received:', message)
-            intersection.from_json(message)
+            simulation.from_json(message)
     except Exception as e:
         print(e)
 
@@ -136,27 +140,30 @@ def send_to_server():
         while running:
             # every 0.5 seconds send the intersection to the server
             time.wait(5000)
-            print('Sending:', intersection.to_json())
-            client.send(intersection.to_json())
+            print('Sending:', simulation.to_json())
+            # client.send(simulation.to_json())
     except Exception as e:
         print(e)
 
 
 def spawn_random_car():
     while running:
-        time.wait(400)
-        random_num = 0 if randint(0, 1) == 0 else 3
-        road = intersection.get_roads()[randint(0, 2)]
+        time.wait(200)
+        road = simulation.intersections[randint(0, 1)].get_roads()[randint(0, 2)]
+        # length of roads
+        random_num = randint(0, len(road.get_lanes()) - 1)
         lane = road.get_lanes()[random_num]
+        if not lane.is_spawnable():
+            continue
         lane.add_car()
 
 
 client = Client()
 
-ip = input('Enter the ip: ')
-port = int(input('Enter the port: '))
-# ip = '127.0.0.1'
-# port = 12345
+# ip = input('Enter the ip: ')
+# port = int(input('Enter the port: '))
+ip = '127.0.0.1'
+port = 12345
 client.connect(ip, port)
 print('Connected')
 
@@ -185,6 +192,7 @@ def event_loop():
         if e.type == MOUSEMOTION:
             mouse_position = e.pos
 
+
 def zoom(width, height):
     global scale_factor, mouse_position
     scaled_width = int(width * scale_factor)
@@ -203,11 +211,12 @@ while running:
         event_loop()
 
         scaled_width, scaled_height, offset_x, offset_y = zoom(MAX_WIDTH, MAX_HEIGHT)
-        scaled_background = transform.scale(intersection.get_background(), (scaled_width, scaled_height))
+        scaled_background = transform.scale(simulation.get_background(), (scaled_width, scaled_height))
         screen.blit(scaled_background, (offset_x, offset_y))
 
         button_presses()
         draw_cars()
+        show_lights()
 
         # Show screen
         display.flip()
