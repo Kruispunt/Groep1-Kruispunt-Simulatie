@@ -1,4 +1,4 @@
-from simulation.thing import Thing
+from simulation.abstract_classes.thing import Thing
 
 
 class Cyclist(Thing):

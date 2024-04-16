@@ -60,14 +60,8 @@ class Thing(ABC):
     def get_destination(self):
         return self._destination
 
-    def get_original_sprite(self):
-        return self._original_sprite
-
-    def get_current_rotation(self):
-        return self._current_rotation
-
-    def get_destination(self):
-        return self._destination
+    def set_destination(self, destination):
+        self._destination = destination
 
     def move(self):
         self._position += self._direction * self._speed

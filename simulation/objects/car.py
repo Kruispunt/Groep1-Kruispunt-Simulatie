@@ -1,9 +1,4 @@
-import math
-
-from pygame import transform
-from pygame.math import Vector2
-
-from simulation.thing import Thing
+from simulation.abstract_classes.thing import Thing
 
 
 class Car(Thing):
