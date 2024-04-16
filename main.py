@@ -191,11 +191,11 @@ def draw_pedestrians():
                             next_pedestrian = None if len(pedestrian_lane.get_connection().get_all()) == 0 else pedestrian_lane.get_connection().get_all()[-1]
                         if next_pedestrian is not None:
                             distance = pedestrian.get_position().distance_to(next_pedestrian.get_position())
-                            if distance < 40:
+                            if distance < 25:
                                 is_moving = False
                     index = pedestrian_lane.get_all().index(pedestrian)
 
-                    if index > 0 and pedestrian_lane.get_all()[index - 1].get_position().distance_to(pedestrian.get_position()) < 40:
+                    if index > 0 and pedestrian_lane.get_all()[index - 1].get_position().distance_to(pedestrian.get_position()) < 25:
                         is_moving = False
 
                     if is_moving:
@@ -212,7 +212,7 @@ def draw_pedestrians():
                                 pedestrian.move_to(pedestrian_lane.get_inbetween_positions()[next_position_index])
                             else:
                                 if pedestrian_lane.get_connection() is not None:
-                                    pedestrian_lane.get_connection().add_pedestrian_lane(pedestrian.get_original_sprite())
+                                    pedestrian_lane.get_connection().add_pedestrian(pedestrian.get_original_sprite())
                                 pedestrian_lane.remove(pedestrian)
 
                     scaled_width = int(pedestrian.get_original_sprite().get_width() * scale_factor)
@@ -232,56 +232,45 @@ def draw_pedestrians():
 def show_lights():
     for intersection in simulation.intersections:
         for road in intersection.get_roads():
-            for car_lane in road.get_car_lanes():
+            for thing_lane in road.get_car_lanes() + road.get_cyclist_lanes() + road.get_pedestrian_lanes():
                 #move with zoom
                 scaled_light_position = (
-                    car_lane.get_light_position()[0] * scale_factor + offset_x,
-                    car_lane.get_light_position()[1] * scale_factor + offset_y)
+                    thing_lane.get_light_position()[0] * scale_factor + offset_x,
+                    thing_lane.get_light_position()[1] * scale_factor + offset_y)
                 #scale with zoom
                 scaled_radius = 5 * scale_factor
-                if car_lane.light_state() == State.red:
+                if thing_lane.light_state() == State.red:
                     draw.circle(screen, (255, 0, 0), scaled_light_position, scaled_radius)
-                elif car_lane.light_state() == State.green:
+                elif thing_lane.light_state() == State.green:
                     draw.circle(screen, (0, 255, 0), scaled_light_position, scaled_radius)
-                elif car_lane.light_state() == State.orange:
+                elif thing_lane.light_state() == State.orange:
                     draw.circle(screen, (255, 255, 0), scaled_light_position, scaled_radius)
-            for cyclist_lane in road.get_cyclist_lanes() + road.get_pedestrian_lanes():
-                #move with zoom
-                scaled_light_position = (
-                    cyclist_lane.get_light_position()[0] * scale_factor + offset_x,
-                    cyclist_lane.get_light_position()[1] * scale_factor + offset_y)
-                #scale with zoom
-                scaled_radius = 5 * scale_factor
-                if cyclist_lane.light_state() == State.red:
-                    draw.circle(screen, (255, 0, 0), scaled_light_position, scaled_radius)
-                elif cyclist_lane.light_state() == State.orange:
-                    draw.circle(screen, (0, 255, 0), scaled_light_position, scaled_radius)
 
 
 def listen_to_server():
-    try:
-        while running:
+    while running:
+        try:
             message = client.receive()
             print('Received:', message)
             simulation.from_json(message)
-    except Exception as e:
-        print(e)
+        except Exception as e:
+            print(e)
 
 
 def send_to_server():
-    try:
-        while running:
-            # every 0.5 seconds send the intersection to the server
-            time.wait(5000)
+    while running:
+        # every 0.5 seconds send the intersection to the server
+        time.wait(500)
+        try:
             print('Sending:', simulation.to_json())
-            # client.send(simulation.to_json())
-    except Exception as e:
-        print(e)
+            client.send(simulation.to_json())
+        except Exception as e:
+            print(e)
 
 
 def spawn_random_car():
     while running:
-        time.wait(200)
+        time.wait(400)
         road = simulation.intersections[randint(0, 1)].get_roads()[randint(0, 2)]
         # length of roads
         random_num = randint(0, len(road.get_car_lanes()) - 1)
@@ -292,7 +281,7 @@ def spawn_random_car():
 
 def spawn_random_cyclist_pedestrian():
     while running:
-        time.wait(1000)
+        time.wait(700)
         road = simulation.intersections[randint(0, 1)].get_roads()[randint(0, 2)]
         # length of roads
         length = len(road.get_cyclist_lanes())
@@ -302,6 +291,7 @@ def spawn_random_cyclist_pedestrian():
             if cyclist_lane.is_spawnable():
                 cyclist_lane.add_cyclist(image.load("simulation/images/cyclist.png"))
 
+        road = simulation.intersections[randint(0, 1)].get_roads()[randint(0, 2)]
         length = len(road.get_pedestrian_lanes())
         if length != 0:
             random_num = randint(0, len(road.get_pedestrian_lanes()) - 1)
@@ -311,10 +301,10 @@ def spawn_random_cyclist_pedestrian():
 
 client = Client()
 
-# ip = input('Enter the ip: ')
-# port = int(input('Enter the port: '))
-ip = '127.0.0.1'
-port = 12345
+ip = input('Enter the ip: ')
+port = int(input('Enter the port: '))
+# ip = '127.0.0.1'
+# port = 12345
 client.connect(ip, port)
 print('Connected')
 

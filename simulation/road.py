@@ -39,7 +39,9 @@ class Road:
                 "Cars":
                     [lane.to_json() for lane in self._car_lanes],
                 "Cyclists":
-                    [lane.to_json() for lane in self._cyclists_lanes]
+                    [lane.to_json() for lane in self._cyclists_lanes],
+                "Pedestrians":
+                    [lane.to_json() for lane in self.pedestrian_lanes]
             }
         }
 
@@ -50,3 +52,6 @@ class Road:
         if self._name in data and "Cyclists" in data[self._name]:
             for i, lane in enumerate(self._cyclists_lanes):
                 lane.from_json(data[self._name]["Cyclists"][i])
+        if self._name in data and "Pedestrians" in data[self._name]:
+            for i, lane in enumerate(self.pedestrian_lanes):
+                lane.from_json(data[self._name]["Pedestrians"][i])
