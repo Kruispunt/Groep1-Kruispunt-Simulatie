@@ -275,13 +275,13 @@ def spawn_random_car():
         # length of roads
         random_num = randint(0, len(road.get_car_lanes()) - 1)
         car_lane = road.get_car_lanes()[random_num]
-        random_num = randint(0, 1)
+
         if car_lane.is_spawnable():
             car_lane.add_car(image.load("simulation/images/car" + randint(0, 1).__str__() + ".png"))
 
 def spawn_random_cyclist_pedestrian():
     while running:
-        time.wait(700)
+        time.wait(7000)
         road = simulation.intersections[randint(0, 1)].get_roads()[randint(0, 2)]
         # length of roads
         length = len(road.get_cyclist_lanes())

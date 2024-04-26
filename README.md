@@ -13,3 +13,18 @@
 ```
 
 Groep1 Controller Simulatie
+
+## Package Dependencies
+- [Python 3.6](https://www.python.org/downloads/release/python-360/)
+- [Pygame 2.5.2](https://github.com/pygame/pygame/releases/tag/2.5.2)
+
+## Run
+
+1. Clone repository, download python and pygame, and run the following command in the terminal:
+
+    ```bash
+    python main.py
+    ```
+
+2. Enter IP address and port number of the server.
+3. Be happy!
