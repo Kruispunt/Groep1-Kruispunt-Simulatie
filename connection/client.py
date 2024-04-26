@@ -1,4 +1,5 @@
 import socket
+import time
 
 
 class Client:
@@ -9,10 +10,10 @@ class Client:
         self._s.connect((ip, port))
 
     def send(self, message):
-        self._s.send(message.encode())
+        self._s.sendall(message.encode())
 
     def receive(self):
-        return self._s.recv(2048).decode()
+        return self._s.recv(1024).decode()
 
     def close(self):
         self._s.close()
