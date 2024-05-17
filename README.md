@@ -13,3 +13,8 @@
 ```
 
 Groep1 Controller Simulatie
+
+
+## Package Dependencies
+- [Python 3.6](https://www.python.org/downloads/release/python-360/)
+- [Pygame 2.5.2](https://github.com/pygame/pygame/releases/tag/2.5.2)
