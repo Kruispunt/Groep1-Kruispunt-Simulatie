@@ -6,8 +6,9 @@ from pygame import transform, Vector2
 class Thing(ABC):
     # speed, position, sprite, destination
 
-    def _init(self, speed, position, sprite, destination, size):
+    def _init(self, speed, position, sprite, destination, size, connection):
         self._speed = speed
+        self._connection = connection
         self._position = position
         self._direction = (destination - position).normalize()
         self._original_sprite = sprite
@@ -16,6 +17,12 @@ class Thing(ABC):
         self._destination = destination
         self._current_rotation = 90
         self._set_direction_of_sprite()
+
+    def get_connection(self):
+        return self._connection
+
+    def set_connection(self, connection):
+        self._connection = connection
 
     def _set_direction_of_sprite(self):
         # Rotate the sprite to face the direction of the car, take into account the current rotation of the sprite

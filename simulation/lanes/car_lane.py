@@ -25,7 +25,9 @@ class Car_Lane(Lane):
     def set_has_priority_vehicle(self, has_priority_vehicle):
         self._has_priority_vehicle = has_priority_vehicle
 
-    def add_bus(self, number, sprite=None):
+    def add_bus(self, number, connection=None, sprite=None):
+        if connection is not None:
+            self._connection = connection
         if sprite is None:
             sprite = image.load("simulation/images/car" + randint(0, 1).__str__() + ".png")
         # make sure the aspect ratio is correct, width is 50

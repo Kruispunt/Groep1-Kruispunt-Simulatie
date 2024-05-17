@@ -10,7 +10,9 @@ class Bus_Lane(Lane):
     def __init__(self, start_position, inbetween_positions, light_position, connection=None, spawnable=True):
         self._init(start_position, inbetween_positions, light_position, connection, spawnable)
 
-    def add_bus(self, number, sprite=None):
+    def add_bus(self, number, connection=None, sprite=None):
+        if connection is not None:
+            self._connection = connection
         if sprite is None:
             sprite = image.load("simulation/images/bus.png")
         # make sure the aspect ratio is correct
@@ -18,7 +20,7 @@ class Bus_Lane(Lane):
 
         # Calculate the height while maintaining the aspect ratio
         scaled_width = int(60 * (original_width / original_height))
-        car_image = transform.scale(sprite, (scaled_width, 60))
+        bus_image = transform.scale(sprite, (scaled_width, 60))
 
         position = self._start_position.copy()
 
@@ -26,7 +28,7 @@ class Bus_Lane(Lane):
                 and self._things[-1].get_destination() == self._light_position):
             position = self._things[-1].get_position() - (self._light_position - self._start_position).normalize() * (60 + 10)
 
-        self._things.append(Bus(3, position, car_image, self._light_position, number, 60))
+        self._things.append(Bus(3, position, bus_image, self._light_position, number, 60))
 
     def to_json(self):
         return 1
