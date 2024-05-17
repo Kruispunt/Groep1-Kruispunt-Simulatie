@@ -1,9 +1,7 @@
 import json
-from random import randint
 
 from pygame import image, transform, Vector2
 
-from simulation.lanes.bus_lane import Bus_Lane
 from simulation.lanes.cyclist_lane import Clyclist_Lane
 from simulation.intersection import Intersection
 from simulation.lanes.car_lane import Car_Lane
@@ -87,7 +85,6 @@ class Simulation:
         roadB.add_car_lane(Car_Lane(Vector2(310, 797), [Vector2(314, 575), Vector2(280, 466), Vector2(183, 312), Vector2(100, 284), Vector2(70, 284), Vector2(-100, 287)], Vector2(315, 650)))
         roadB.add_car_lane(Car_Lane(Vector2(335, 798), [Vector2(342, 520), Vector2(400, 415), Vector2(925, 420)], Vector2(335, 650), connection=roadD.get_car_lanes()[0]))
         roadB.add_car_lane(Car_Lane(Vector2(360, 798), [Vector2(372, 520), Vector2(455, 430), Vector2(925, 440)], Vector2(358, 650), connection=roadD.get_car_lanes()[1]))
-        roadB.add_bus_lane(Bus_Lane(Vector2(390, 798), [Vector2(358, 650)], Vector2(381, 650), connection=roadB.get_car_lanes()[3]))
 
         self.intersections[0].add_road(roadA)
         self.intersections[0].add_road(roadB)
@@ -117,6 +114,3 @@ class Simulation:
             json_structure = {**json_structure, **intersection.to_json()}
 
         return json.dumps(json_structure)
-
-    def get_bus_number(self):
-        randint(0, 2)

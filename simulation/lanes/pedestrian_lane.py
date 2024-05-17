@@ -27,7 +27,7 @@ class Pedestrian_Lane(Lane):
                         self._light_position - self._start_position).normalize() * (
                                20 + 5)
 
-        self._things.append(Pedestrian(1, thing_position, sprite, self._light_position, 20))
+        self._things.append(Pedestrian(1, thing_position, sprite, self._light_position))
 
     def to_json(self):
         return {

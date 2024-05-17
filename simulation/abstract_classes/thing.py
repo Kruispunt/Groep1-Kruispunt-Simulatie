@@ -6,13 +6,12 @@ from pygame import transform, Vector2
 class Thing(ABC):
     # speed, position, sprite, destination
 
-    def _init(self, speed, position, sprite, destination, size):
+    def _init(self, speed, position, sprite, destination):
         self._speed = speed
         self._position = position
         self._direction = (destination - position).normalize()
         self._original_sprite = sprite
         self._sprite = sprite
-        self._size = size
         self._destination = destination
         self._current_rotation = 90
         self._set_direction_of_sprite()
@@ -25,12 +24,6 @@ class Thing(ABC):
         self._sprite = transform.rotate(self._sprite, angle)
 
         self._sprite.set_colorkey((255, 255, 255))
-
-    def get_size(self):
-        return self._size
-
-    def set_size(self, size):
-        self._size = size
 
     def set_speed(self, speed):
         self._speed = speed
@@ -83,3 +76,4 @@ class Thing(ABC):
         self._destination = position
         self._direction = (position - self._position).normalize()
         self._set_direction_of_sprite()
+

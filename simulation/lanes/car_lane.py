@@ -25,38 +25,24 @@ class Car_Lane(Lane):
     def set_has_priority_vehicle(self, has_priority_vehicle):
         self._has_priority_vehicle = has_priority_vehicle
 
-    def add_bus(self, number, sprite=None):
+    def add_car(self, sprite=None):
         if sprite is None:
             sprite = image.load("simulation/images/car" + randint(0, 1).__str__() + ".png")
         # make sure the aspect ratio is correct, width is 50
         original_width, original_height = sprite.get_size()
 
         # Calculate the height while maintaining the aspect ratio
-        scaled_width = int(60 * (original_width / original_height))
-        car_image = transform.scale(sprite, (scaled_width, 60))
-
-        position = self._light_position.copy() - (self._light_position - self._start_position).normalize() * 20
-
-        self._things.append(Car(3, position, car_image, self._light_position, 60))
-
-    def add_car(self, size, sprite=None):
-        if sprite is None:
-            sprite = image.load("simulation/images/car" + randint(0, 1).__str__() + ".png")
-        # make sure the aspect ratio is correct, width is 50
-        original_width, original_height = sprite.get_size()
-
-        # Calculate the height while maintaining the aspect ratio
-        scaled_width = int(size * (original_width / original_height))
-        car_image = transform.scale(sprite, (scaled_width, size))
+        scaled_width = int(40 * (original_width / original_height))
+        car_image = transform.scale(sprite, (scaled_width, 40))
 
         position = self._start_position.copy()
 
         if (self._things and self._start_position.dot(self._things[-1].get_position()) >= 0
                 and self._things[-1].get_destination() == self._light_position):
             position = self._things[-1].get_position() - (self._light_position - self._start_position).normalize() * (
-                        size + 10)
+                        40 + 10)
 
-        self._things.append(Car(3, position, car_image, self._light_position, size))
+        self._things.append(Car(3, position, car_image, self._light_position))
 
     def to_json(self):
         # make sure it doesn't produce a string
