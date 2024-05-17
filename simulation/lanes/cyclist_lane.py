@@ -27,7 +27,7 @@ class Clyclist_Lane(Lane):
                         self._light_position - self._start_position).normalize() * (
                                40 + 10)
 
-        self._things.append(Cyclist(2, thing_position, sprite, self._light_position))
+        self._things.append(Cyclist(2, thing_position, sprite, self._light_position, 40))
 
     def to_json(self):
         return {
