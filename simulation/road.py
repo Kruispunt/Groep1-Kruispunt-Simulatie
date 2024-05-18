@@ -54,7 +54,12 @@ class Road:
             json_data["Pedestrians"] = [lane.to_json() for lane in self.pedestrian_lanes]
 
         if self.bus_lanes:
-            json_data["Busses"] = [lane.to_json() for lane in self.bus_lanes]
+            # for each bus in lanes, double for loop
+            for lane in self.bus_lanes:
+                json_bus_data = []
+                for bus in lane.get_all():
+                    json_bus_data.append(bus.get_number())
+                json_data["Busses"] = json_bus_data
 
         return {self._name: json_data}
 

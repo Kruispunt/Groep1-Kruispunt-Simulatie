@@ -42,11 +42,6 @@ def button_presses():
         for lane2 in road.get_car_lanes():
             lane2.change_light(State.red)
 
-    # if c is pressed, add a car
-    if key.get_pressed()[K_c]:
-        print(road.get_name())
-        car_lane.add(Car(speed=3, sprite=None),
-                     sprite=image.load("simulation/images/car" + randint(0, 1).__str__() + ".png"))
     if mouse.get_pressed()[0]:
         print("Vector2" + mouse.get_pos().__str__() + ",")
 
@@ -74,7 +69,7 @@ def draw_cars():
                         next_car = None
                         if car_lane.get_connection() is not None:
                             next_car = None if len(car_lane.get_connection().get_all()) == 0 else \
-                            car_lane.get_connection().get_all()[-1]
+                                car_lane.get_connection().get_all()[-1]
                         if next_car is not None:
                             distance = car.get_position().distance_to(next_car.get_position())
                             if distance < car.get_size():
@@ -139,7 +134,7 @@ def draw_cyclists():
                         next_cyclist = None
                         if cyclist_lane.get_connection() is not None:
                             next_cyclist = None if len(cyclist_lane.get_connection().get_all()) == 0 else \
-                            cyclist_lane.get_connection().get_all()[-1]
+                                cyclist_lane.get_connection().get_all()[-1]
                         if next_cyclist is not None:
                             distance = cyclist.get_position().distance_to(next_cyclist.get_position())
                             if distance < 40:
@@ -204,7 +199,7 @@ def draw_pedestrians():
                         next_pedestrian = None
                         if pedestrian_lane.get_connection() is not None:
                             next_pedestrian = None if len(pedestrian_lane.get_connection().get_all()) == 0 else \
-                            pedestrian_lane.get_connection().get_all()[-1]
+                                pedestrian_lane.get_connection().get_all()[-1]
                         if next_pedestrian is not None:
                             distance = pedestrian.get_position().distance_to(next_pedestrian.get_position())
                             if distance < 25:
@@ -265,18 +260,17 @@ def draw_busses():
                         next_bus = None
                         if bus_lane.get_connection() is not None:
                             next_bus = None if len(bus_lane.get_connection().get_all()) == 0 else \
-                            bus_lane.get_connection().get_all()[-1]
+                                bus_lane.get_connection().get_all()[-1]
                         if next_bus is not None:
                             distance = bus.get_position().distance_to(next_bus.get_position())
                             if distance < 40:
                                 is_moving = False
                     index = bus_lane.get_all().index(bus)
 
-                    if index > 0 and bus_lane.get_all()[index - 1].get_position().distance_to(bus.get_position()) < bus.get_size():
+                    if index > 0 and bus_lane.get_all()[index - 1].get_position().distance_to(
+                            bus.get_position()) < bus.get_size():
                         is_moving = False
 
-                    if is_moving:
-                        bus.move()
                     if bus.get_direction().dot(bus.get_destination() - bus.get_position()) < 0:
                         # move bus to the next position
                         if bus_lane.get_inbetween_positions():
@@ -290,9 +284,16 @@ def draw_busses():
                                 bus.move_to(bus_lane.get_inbetween_positions()[next_position_index])
                             else:
                                 if bus_lane.get_connection() is not None:
-                                    bus_lane.get_connection().add_bus(bus.get_number(),
-                                                                      sprite=bus.get_original_sprite())
-                                bus_lane.remove(bus)
+                                    if not bus_lane.get_connection().has_waiting():
+                                        bus_lane.get_connection().add_bus(bus.get_number(),
+                                                                          sprite=bus.get_original_sprite())
+                                        bus_lane.remove(bus)
+                                    else:
+                                        is_moving = False
+                                else:
+                                    bus_lane.remove(bus)
+                    if is_moving:
+                        bus.move()
 
                     scaled_width = int(bus.get_original_sprite().get_width() * scale_factor)
                     scaled_height = int(bus.get_original_sprite().get_height() * scale_factor)
@@ -405,20 +406,25 @@ bus_numbers = {
                         44,
                         320],
             "connections": {
-                4: simulation.intersections[1].get_roads()[1].get_car_lanes()[0],
-                44: simulation.intersections[1].get_roads()[1].get_car_lanes()[0],
-                320: simulation.intersections[1].get_roads()[1].get_car_lanes()[0]
+                4: None,
+                44: None,
+                320: None,
             }
         },
 }
+
+
 def get_bus_number(road_number):
     return bus_numbers[road_number]["numbers"][randint(0, len(bus_numbers[road_number]["numbers"]) - 1)]
 
+
 def get_bus_connection(road_number, bus_number):
     return bus_numbers[road_number]["connections"][bus_number]
+
+
 def spawn_random_bus():
     while running:
-        time.wait(3000)
+        time.wait(6000)
         road = simulation.intersections[randint(0, 1)].get_roads()[randint(0, 2)]
         # road = simulation.intersections[0].get_roads()[1]
         length = len(road.get_bus_lanes())
@@ -482,7 +488,7 @@ def zoom(width, height):
 
 
 while running:
-    # try:
+    try:
         event_loop()
 
         scaled_width, scaled_height, offset_x, offset_y = zoom(MAX_WIDTH, MAX_HEIGHT)
@@ -501,8 +507,8 @@ while running:
 
         # 24 fps
         clock.tick(24)
-    # except Exception as e:
-    #     print(e)
+    except Exception as e:
+        print(e)
 
 client.close()
 quit()

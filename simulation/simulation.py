@@ -45,7 +45,7 @@ class Simulation:
         roadE.add_car_lane(Car_Lane(Vector2(1060, 0), [Vector2(1077, 262), Vector2(1142, 408), Vector2(1263, 498), Vector2(1400, 501), ], Vector2(1065, 130)))
         roadE.add_car_lane(Car_Lane(Vector2(1040, 0), [Vector2(1025, 310), Vector2(955, 365), Vector2(784, 360), Vector2(667, 362)], Vector2(1045, 130), connection=roadC.get_car_lanes()[0]))
         roadE.add_car_lane(Car_Lane(Vector2(1020, 0), [Vector2(1000, 252), Vector2(957, 350), Vector2(784, 340), Vector2(667, 337)], Vector2(1022, 130), connection=roadC.get_car_lanes()[1]))
-        roadE.add_bus_lane(Bus_Lane(Vector2(1080, 0), [Vector2(1080, 130)],Vector2(1080, 130), connection=roadD.get_car_lanes()[0]))
+        roadE.add_bus_lane(Bus_Lane(Vector2(1090, 0), [Vector2(1102, 257),Vector2(1156, 379),Vector2(1261, 471),Vector2(1385, 467),],Vector2(1090, 130)))
 
         roadF = Road("F")
         roadFp1 = Pedestrian_Lane(Vector2(1242, 410), [Vector2(1205, 790),], Vector2(1239, 428), spawnable=False)
