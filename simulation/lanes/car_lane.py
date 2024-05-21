@@ -30,14 +30,18 @@ class Car_Lane(Lane):
             self._connection = connection
         if sprite is None:
             sprite = image.load("simulation/images/car" + randint(0, 1).__str__() + ".png")
-        # make sure the aspect ratio is correct, width is 50
+        # make sure the aspect ratio is correct
         original_width, original_height = sprite.get_size()
 
         # Calculate the height while maintaining the aspect ratio
         scaled_width = int(60 * (original_width / original_height))
         car_image = transform.scale(sprite, (scaled_width, 60))
 
-        position = self._light_position.copy() - (self._light_position - self._start_position).normalize() * 20
+        position = self._start_position.copy()
+
+        if self._things and self._start_position.dot(self._things[-1].get_position()) <= 0:
+            position = self._things[-1].get_position() - (self._light_position - self._start_position).normalize() * (
+                    60 + 10)
 
         self._things.append(Car(3, position, car_image, self._light_position, 60))
 
@@ -53,8 +57,7 @@ class Car_Lane(Lane):
 
         position = self._start_position.copy()
 
-        if (self._things and self._start_position.dot(self._things[-1].get_position()) >= 0
-                and self._things[-1].get_destination() == self._light_position):
+        if self._things and self._start_position.dot(self._things[-1].get_position()) <= 0:
             position = self._things[-1].get_position() - (self._light_position - self._start_position).normalize() * (
                         size + 10)
 
