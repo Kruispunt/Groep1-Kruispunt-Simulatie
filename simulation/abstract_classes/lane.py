@@ -16,6 +16,9 @@ class Lane(ABC):
         self._has_waiting = False
         self._spawnable = spawnable
 
+    def get_light(self):
+        return self._light
+
     def get_start_position(self):
         return self._start_position
 

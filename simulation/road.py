@@ -76,3 +76,5 @@ class Road:
         if self._name in data and "Busses" in data[self._name]:
             for i, lane in enumerate(self.bus_lanes):
                 lane.from_json(data[self._name]["Busses"][i])
+                if lane.is_linked():
+                    lane.set_linked_light(data[self._name]["Busses"][i + 1])

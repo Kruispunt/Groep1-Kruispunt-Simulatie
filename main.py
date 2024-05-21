@@ -249,18 +249,22 @@ def draw_busses():
         for road in intersection.get_roads():
             for bus_lane in road.get_bus_lanes():
                 for bus in bus_lane.get_all():
+                    light_pos = bus_lane.get_light_position()
+                    bus_light = bus_lane.get_light() if not bus_lane.is_linked() else bus_lane.linked_light
+                    connection = bus_lane.get_connection() if not bus_lane.is_linked() else bus_lane.linked_connection
+                    inbetween_positions = bus_lane.get_inbetween_positions() if not bus_lane.is_linked() else bus_lane.linked_inbetween_positions
                     is_moving = True
                     # bus destination is at light
-                    if bus.get_destination() == bus_lane.get_light_position():
-                        if bus.get_position().distance_to(bus_lane.get_light_position()) < 5:
-                            if bus_lane.light_state() == State.red:
+                    if bus.get_destination() == light_pos:
+                        if bus.get_position().distance_to(light_pos) < 5:
+                            if State(bus_light.get_state()) == State.red:
                                 is_moving = False
                     # bus destination is not at light
                     else:
                         next_bus = None
-                        if bus_lane.get_connection() is not None:
-                            next_bus = None if len(bus_lane.get_connection().get_all()) == 0 else \
-                                bus_lane.get_connection().get_all()[-1]
+                        if connection is not None:
+                            next_bus = None if len(connection.get_all()) == 0 else \
+                                connection.get_all()[-1]
                         if next_bus is not None:
                             distance = bus.get_position().distance_to(next_bus.get_position())
                             if distance < 40:
@@ -273,25 +277,20 @@ def draw_busses():
 
                     if bus.get_direction().dot(bus.get_destination() - bus.get_position()) < 0:
                         # move bus to the next position
-                        if bus_lane.get_inbetween_positions():
+                        if inbetween_positions:
                             # check for each position in the inbetween positions if the bus destination is the same with lambda
                             next_position_index = next(
-                                (i for i, x in enumerate(bus_lane.get_inbetween_positions()) if
+                                (i for i, x in enumerate(inbetween_positions) if
                                  x == bus.get_destination()),
                                 -1) + 1
 
-                            if next_position_index < len(bus_lane.get_inbetween_positions()):
-                                bus.move_to(bus_lane.get_inbetween_positions()[next_position_index])
+                            if next_position_index < len(inbetween_positions):
+                                bus.move_to(inbetween_positions[next_position_index])
                             else:
-                                if bus_lane.get_connection() is not None:
-                                    if not bus_lane.get_connection().has_waiting():
-                                        bus_lane.get_connection().add_bus(bus.get_number(),
-                                                                          sprite=bus.get_original_sprite())
-                                        bus_lane.remove(bus)
-                                    else:
-                                        is_moving = False
-                                else:
-                                    bus_lane.remove(bus)
+                                if connection is not None:
+                                    connection.add_bus(bus.get_number(), sprite=bus.get_original_sprite())
+
+                                bus_lane.remove(bus)
                     if is_moving:
                         bus.move()
 
@@ -314,18 +313,29 @@ def show_lights():
     for intersection in simulation.intersections:
         for road in intersection.get_roads():
             for thing_lane in road.get_car_lanes() + road.get_cyclist_lanes() + road.get_pedestrian_lanes() + road.get_bus_lanes():
-                # move with zoom
-                scaled_light_position = (
-                    thing_lane.get_light_position()[0] * scale_factor + offset_x,
-                    thing_lane.get_light_position()[1] * scale_factor + offset_y)
-                # scale with zoom
-                scaled_radius = 5 * scale_factor
-                if thing_lane.light_state() == State.red:
-                    draw.circle(screen, (255, 0, 0), scaled_light_position, scaled_radius)
-                elif thing_lane.light_state() == State.green:
-                    draw.circle(screen, (0, 255, 0), scaled_light_position, scaled_radius)
-                elif thing_lane.light_state() == State.orange and thing_lane is not Bus_Lane:
-                    draw.circle(screen, (255, 255, 0), scaled_light_position, scaled_radius)
+                draw_lights(thing_lane, state=thing_lane.light_state())
+                if isinstance(thing_lane, Bus_Lane):
+                    if thing_lane.is_linked():
+                        draw_lights(thing_lane, thing_lane.linked_light.get_state(), thing_lane.linked_light_position)
+
+
+def draw_lights(lane, state, light_position=None):
+    state = State(state)
+    scaled_radius = 5 * scale_factor
+    if light_position is None:
+        scaled_light_position = (
+            lane.get_light_position()[0] * scale_factor + offset_x,
+            lane.get_light_position()[1] * scale_factor + offset_y)
+    else:
+        scaled_light_position = (
+            light_position[0] * scale_factor + offset_x,
+            light_position[1] * scale_factor + offset_y)
+    if state == State.red:
+        draw.circle(screen, (255, 0, 0), scaled_light_position, scaled_radius)
+    elif state == State.green:
+        draw.circle(screen, (0, 255, 0), scaled_light_position, scaled_radius)
+    elif state == State.orange and lane is not Bus_Lane:
+        draw.circle(screen, (255, 255, 0), scaled_light_position, scaled_radius)
 
 
 def listen_to_server():
@@ -341,7 +351,7 @@ def listen_to_server():
 def send_to_server():
     while running:
         # every 0.5 seconds send the intersection to the server
-        time.wait(5000)
+        time.wait(500)
         try:
             print('Sending:', simulation.to_json())
             client.send(simulation.to_json())
@@ -390,27 +400,32 @@ bus_numbers = {
                         95,
                         825,
                         695],
-            "connections":
-                {
-                    22: simulation.intersections[0].get_roads()[1].get_car_lanes()[3],
-                    28: simulation.intersections[0].get_roads()[1].get_car_lanes()[3],
-                    95: simulation.intersections[0].get_roads()[1].get_car_lanes()[3],
-                    825: simulation.intersections[0].get_roads()[1].get_car_lanes()[3],
-                    695: simulation.intersections[0].get_roads()[1].get_car_lanes()[3],
-                }
+            "is_going_alternative":
+                [
+                ]
         },
 
     "E":
         {
             "numbers": [4,
                         44,
-                        320],
-            "connections": {
-                4: None,
-                44: None,
-                320: None,
-            }
+                        320,
+                        22,
+                        28,
+                        95,
+                        825,
+                        695],
+            "is_going_alternative":
+                [
+                    22, 28, 95, 825, 695
+                ]
         },
+    "F":
+        {
+            "numbers": [14,
+                        114,
+                        320],
+        }
 }
 
 
@@ -419,30 +434,37 @@ def get_bus_number(road_number):
 
 
 def get_bus_connection(road_number, bus_number):
-    return bus_numbers[road_number]["connections"][bus_number]
+    return bus_number in bus_numbers[road_number]["is_going_alternative"]
 
 
 def spawn_random_bus():
     while running:
         time.wait(6000)
-        road = simulation.intersections[randint(0, 1)].get_roads()[randint(0, 2)]
-        # road = simulation.intersections[0].get_roads()[1]
-        length = len(road.get_bus_lanes())
-        if length != 0:
-            random_num = randint(0, len(road.get_bus_lanes()) - 1)
-            bus_lane = road.get_bus_lanes()[random_num]
-            if bus_lane.is_spawnable():
-                number = get_bus_number(road.get_name())
-                bus_lane.add_bus(number, connection=get_bus_connection(road.get_name(), number),
-                                 sprite=image.load("simulation/images/bus.png"))
+        while True:
+            road = simulation.intersections[randint(0, 1)].get_roads()[randint(0, 2)]
+            # road = simulation.intersections[0].get_roads()[1]
+            length = len(road.get_bus_lanes())
+            if length != 0:
+                random_num = randint(0, len(road.get_bus_lanes()) - 1)
+                bus_lane = road.get_bus_lanes()[random_num]
+                if bus_lane.is_spawnable():
+                    number = get_bus_number(road.get_name())
+                    bus_lane.add_bus(number, going_linked_connection=get_bus_connection(road.get_name(), number),
+                                     sprite=image.load("simulation/images/bus.png"))
+                    break
+            else:
+                if randint(0, 5) == 0:
+                    road = simulation.intersections[1].get_roads()[2]
+                    if road.get_car_lanes()[3].is_spawnable():
+                        road.get_car_lanes()[3].add_bus(get_bus_number(road.get_name()), sprite=image.load("simulation/images/bus.png"))
 
 
 client = Client()
 
-ip = input('Enter the ip: ')
-port = int(input('Enter the port: '))
-# ip = '127.0.0.1'
-# port = 12345
+# ip = input('Enter the ip: ')
+# port = int(input('Enter the port: '))
+ip = '127.0.0.1'
+port = 12345
 client.connect(ip, port)
 print('Connected')
 
@@ -488,27 +510,27 @@ def zoom(width, height):
 
 
 while running:
-    try:
-        event_loop()
+    # try:
+    event_loop()
 
-        scaled_width, scaled_height, offset_x, offset_y = zoom(MAX_WIDTH, MAX_HEIGHT)
-        scaled_background = transform.scale(simulation.get_background(), (scaled_width, scaled_height))
-        screen.blit(scaled_background, (offset_x, offset_y))
+    scaled_width, scaled_height, offset_x, offset_y = zoom(MAX_WIDTH, MAX_HEIGHT)
+    scaled_background = transform.scale(simulation.get_background(), (scaled_width, scaled_height))
+    screen.blit(scaled_background, (offset_x, offset_y))
 
-        button_presses()
-        draw_cars()
-        draw_cyclists()
-        draw_pedestrians()
-        draw_busses()
-        show_lights()
+    button_presses()
+    draw_cars()
+    draw_cyclists()
+    draw_pedestrians()
+    draw_busses()
+    show_lights()
 
-        # Show screen
-        display.flip()
+    # Show screen
+    display.flip()
 
-        # 24 fps
-        clock.tick(24)
-    except Exception as e:
-        print(e)
+    # 24 fps
+    clock.tick(24)
+# except Exception as e:
+#     print(e)
 
 client.close()
 quit()
