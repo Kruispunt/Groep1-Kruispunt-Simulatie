@@ -26,6 +26,7 @@ class Car_Lane(Lane):
         self._has_priority_vehicle = has_priority_vehicle
 
     def add_bus(self, number, connection=None, sprite=None):
+        size=60
         if connection is not None:
             self._connection = connection
         if sprite is None:
@@ -34,20 +35,20 @@ class Car_Lane(Lane):
         original_width, original_height = sprite.get_size()
 
         # Calculate the height while maintaining the aspect ratio
-        scaled_width = int(60 * (original_width / original_height))
-        car_image = transform.scale(sprite, (scaled_width, 60))
+        scaled_width = int(size * (original_width / original_height))
+        car_image = transform.scale(sprite, (scaled_width, size))
 
         position = self._start_position.copy()
 
         if self._things and self._start_position.dot(self._things[-1].get_position()) <= 0:
             position = self._things[-1].get_position() - (self._light_position - self._start_position).normalize() * (
-                    60 + 10)
+                    size + 10)
 
-        self._things.append(Car(3, position, car_image, self._light_position, 60))
+        self._things.append(Car(3, position, car_image, self._light_position, size))
 
-    def add_car(self, size, sprite=None):
+    def add_car(self, size, is_prio=False, sprite=None, is_different=False):
         if sprite is None:
-            sprite = image.load("simulation/images/car" + randint(0, 1).__str__() + ".png")
+            sprite = image.load("simulation/images/car0.png")
         # make sure the aspect ratio is correct, width is 50
         original_width, original_height = sprite.get_size()
 
@@ -61,14 +62,14 @@ class Car_Lane(Lane):
             position = self._things[-1].get_position() - (self._light_position - self._start_position).normalize() * (
                         size + 10)
 
-        self._things.append(Car(3, position, car_image, self._light_position, size))
+        self._things.append(Car(3, position, car_image, self._light_position, size, is_prio, is_different))
 
     def to_json(self):
         # make sure it doesn't produce a string
         return {
             "DetectNear": self._has_waiting,
             "DetectFar": self._has_car_waiting_far,
-            "PrioCar": self._has_priority_vehicle,
+            "PrioCar": any(car.is_priority for car in self._things),
         }
 
     def from_json(self, data):

@@ -5,6 +5,7 @@ import pygame
 
 from connection.client import Client
 from simulation.lanes.bus_lane import Bus_Lane
+from simulation.lanes.car_lane import Car_Lane
 from simulation.objects.car import Car
 from simulation.light import Light
 from simulation.enums.state import State
@@ -34,8 +35,12 @@ def button_presses():
 
     # if g is pressed, change light to green
     if key.get_pressed()[K_g]:
-        for lane2 in road.get_car_lanes() + road.get_cyclist_lanes() + road.get_pedestrian_lanes() + road.get_bus_lanes():
+        for lane2 in road.get_car_lanes() + road.get_cyclist_lanes() + road.get_pedestrian_lanes():
             lane2.change_light(State.green)
+        for lane2 in road.get_bus_lanes():
+            lane2.change_light(State.green)
+            if lane2.is_linked():
+                lane2.linked_light.change(State.green)
 
     # if r is pressed, change light to red
     if key.get_pressed()[K_r]:
@@ -71,13 +76,13 @@ def draw_cars():
                             next_car = None if len(car_lane.get_connection().get_all()) == 0 else \
                                 car_lane.get_connection().get_all()[-1]
                         if next_car is not None:
-                            distance = car.get_position().distance_to(next_car.get_position())
+                            distance = abs(car.get_position().distance_to(next_car.get_position()))
                             if distance < car.get_size():
                                 is_moving = False
                     index = car_lane.get_all().index(car)
 
-                    if index > 0 and car_lane.get_all()[index - 1].get_position().distance_to(
-                            car.get_position()) < car.get_size():
+                    if index > 0 and abs(car_lane.get_all()[index - 1].get_position().distance_to(
+                            car.get_position())) < car.get_size():
                         is_moving = False
 
                     if is_moving:
@@ -95,7 +100,8 @@ def draw_cars():
                                 car.move_to(car_lane.get_inbetween_positions()[next_position_index])
                             else:
                                 if car_lane.get_connection() is not None:
-                                    car_lane.get_connection().add_car(car.get_size(), car.get_original_sprite())
+                                    car_lane.get_connection().add_car(car.get_size(), is_prio=car.is_priority,
+                                                                      sprite=car.get_original_sprite(), is_different=car.is_different)
                                 car_lane.remove(car)
 
                     scaled_width = int(car.get_original_sprite().get_width() * scale_factor)
@@ -149,18 +155,36 @@ def draw_cyclists():
                         cyclist.move()
                     if cyclist.get_direction().dot(cyclist.get_destination() - cyclist.get_position()) < 0:
                         # move cyclist to the next position
-                        if cyclist_lane.get_inbetween_positions():
+                        if cyclist_lane.get_inbetween_positions() or cyclist_lane.inbetween_light_positions:
                             # check for each position in the inbetween positions if the cyclist destination is the same with lambda
                             next_position_index = next(
                                 (i for i, x in enumerate(cyclist_lane.get_inbetween_positions()) if
                                  x == cyclist.get_destination()),
-                                -1) + 1
-
-                            if next_position_index < len(cyclist_lane.get_inbetween_positions()):
-                                cyclist.move_to(cyclist_lane.get_inbetween_positions()[next_position_index])
+                                -1)
+                            next_position_index_light = next(
+                                (i for i, x in enumerate(cyclist_lane.inbetween_light_positions) if
+                                 x == cyclist.get_destination()),
+                                -1)
+                            if next_position_index != -1 and next_position_index + 1 < len(
+                                    cyclist_lane.get_inbetween_positions()):
+                                cyclist.move_to(cyclist_lane.get_inbetween_positions()[next_position_index + 1])
+                            elif next_position_index_light != -1:
+                                if next_position_index_light + 1 < len(cyclist_lane.inbetween_light_positions):
+                                    cyclist.move_to(
+                                        cyclist_lane.inbetween_light_positions[next_position_index_light + 1])
+                                else:
+                                    if cyclist_lane.chance_split is not None:
+                                        if randint(0, 1) == 0:
+                                            cyclist_lane.chance_split.add_cyclist(cyclist.get_original_sprite())
+                                            cyclist_lane.remove(cyclist)
+                                            continue
+                                    cyclist.move_to(cyclist_lane.get_light_position())
+                            elif cyclist.get_destination() == cyclist_lane.get_light_position():
+                                if cyclist_lane.get_inbetween_positions():
+                                    cyclist.move_to(cyclist_lane.get_inbetween_positions()[0])
                             else:
                                 if cyclist_lane.get_connection() is not None:
-                                    cyclist_lane.get_connection().add_cyclist_lane(cyclist.get_original_sprite())
+                                    cyclist_lane.get_connection().add_cyclist(cyclist.get_original_sprite())
                                 cyclist_lane.remove(cyclist)
 
                     scaled_width = int(cyclist.get_original_sprite().get_width() * scale_factor)
@@ -213,16 +237,34 @@ def draw_pedestrians():
                     if is_moving:
                         pedestrian.move()
                     if pedestrian.get_direction().dot(pedestrian.get_destination() - pedestrian.get_position()) < 0:
-                        # move pedestrian to the next position
-                        if pedestrian_lane.get_inbetween_positions():
+                        if pedestrian_lane.get_inbetween_positions() or pedestrian_lane.inbetween_light_positions:
                             # check for each position in the inbetween positions if the pedestrian destination is the same with lambda
                             next_position_index = next(
                                 (i for i, x in enumerate(pedestrian_lane.get_inbetween_positions()) if
                                  x == pedestrian.get_destination()),
-                                -1) + 1
-
-                            if next_position_index < len(pedestrian_lane.get_inbetween_positions()):
-                                pedestrian.move_to(pedestrian_lane.get_inbetween_positions()[next_position_index])
+                                -1)
+                            next_position_index_light = next(
+                                (i for i, x in enumerate(pedestrian_lane.inbetween_light_positions) if
+                                 x == pedestrian.get_destination()),
+                                -1)
+                            if next_position_index != -1 and next_position_index + 1 < len(
+                                    pedestrian_lane.get_inbetween_positions()):
+                                pedestrian.move_to(pedestrian_lane.get_inbetween_positions()[next_position_index + 1])
+                            elif next_position_index_light != -1:
+                                if next_position_index_light + 1 < len(pedestrian_lane.inbetween_light_positions):
+                                    pedestrian.move_to(
+                                        pedestrian_lane.inbetween_light_positions[next_position_index_light + 1])
+                                else:
+                                    if pedestrian_lane.chance_split is not None:
+                                        if randint(0, 1) == 0:
+                                            pedestrian_lane.chance_split.add_pedestrian(
+                                                pedestrian.get_original_sprite())
+                                            pedestrian_lane.remove(pedestrian)
+                                            continue
+                                    pedestrian.move_to(pedestrian_lane.get_light_position())
+                            elif pedestrian.get_destination() == pedestrian_lane.get_light_position():
+                                if pedestrian_lane.get_inbetween_positions():
+                                    pedestrian.move_to(pedestrian_lane.get_inbetween_positions()[0])
                             else:
                                 if pedestrian_lane.get_connection() is not None:
                                     pedestrian_lane.get_connection().add_pedestrian(pedestrian.get_original_sprite())
@@ -288,8 +330,13 @@ def draw_busses():
                                 bus.move_to(inbetween_positions[next_position_index])
                             else:
                                 if connection is not None:
-                                    connection.add_bus(bus.get_number(), sprite=bus.get_original_sprite())
-
+                                    if isinstance(connection, Car_Lane):
+                                        connection.add_car(bus.get_size(), is_prio=False,
+                                                           sprite=bus.get_original_sprite(), is_different=True)
+                                    else:
+                                        connection.add_bus(bus.get_number(),
+                                                           going_linked_connection=bus.is_going_linked_connection(),
+                                                           sprite=bus.get_original_sprite())
                                 bus_lane.remove(bus)
                     if is_moving:
                         bus.move()
@@ -361,35 +408,49 @@ def send_to_server():
 
 def spawn_random_car():
     while running:
-        time.wait(400)
-        road = simulation.intersections[randint(0, 1)].get_roads()[randint(0, 2)]
-        # length of roads
-        random_num = randint(0, len(road.get_car_lanes()) - 1)
-        car_lane = road.get_car_lanes()[random_num]
+        time.wait(1200)
+        while True:
+            road = simulation.intersections[randint(0, 1)].get_roads()[randint(0, 2)]
+            # length of roads
+            random_num = randint(0, len(road.get_car_lanes()) - 1)
+            car_lane = road.get_car_lanes()[random_num]
 
-        if car_lane.is_spawnable():
-            car_lane.add_car(40, image.load("simulation/images/car" + randint(0, 1).__str__() + ".png"))
+            if car_lane.is_spawnable():
+                if randint(0, 100) != 0:
+                    car_lane.add_car(40, sprite=image.load("simulation/images/car0.png"))
+                else:
+                    car_lane.add_car(40, is_prio=True, sprite=image.load("simulation/images/car1.png"))
+                break
 
 
 def spawn_random_cyclist_pedestrian():
     while running:
-        time.wait(7000)
-        road = simulation.intersections[randint(0, 1)].get_roads()[randint(0, 2)]
-        # length of roads
-        length = len(road.get_cyclist_lanes())
-        if length != 0:
-            random_num = randint(0, len(road.get_cyclist_lanes()) - 1)
-            cyclist_lane = road.get_cyclist_lanes()[random_num]
-            if cyclist_lane.is_spawnable():
-                cyclist_lane.add_cyclist(image.load("simulation/images/cyclist.png"))
+        time.wait(2000)
+        has_spawned_pedestrian = False
+        has_spawned_cyclist = False
+        while True:
+            road = simulation.intersections[randint(0, 1)].get_roads()[randint(0, 2)]
+            # length of roads
+            length = len(road.get_cyclist_lanes())
+            if length != 0 and not has_spawned_cyclist:
+                random_num = randint(0, len(road.get_cyclist_lanes()) - 1)
+                cyclist_lane = road.get_cyclist_lanes()[random_num]
+                if cyclist_lane.is_spawnable():
+                    cyclist_lane.add_cyclist(image.load("simulation/images/cyclist.png"))
+                    has_spawned_cyclist = True
 
-        road = simulation.intersections[randint(0, 1)].get_roads()[randint(0, 2)]
-        length = len(road.get_pedestrian_lanes())
-        if length != 0:
-            random_num = randint(0, len(road.get_pedestrian_lanes()) - 1)
-            pedestrian_lane = road.get_pedestrian_lanes()[random_num]
-            if pedestrian_lane.is_spawnable():
-                pedestrian_lane.add_pedestrian(image.load("simulation/images/pedestrian.png"))
+            road = simulation.intersections[randint(0, 1)].get_roads()[randint(0, 2)]
+            length = len(road.get_pedestrian_lanes())
+            if length != 0 and not has_spawned_pedestrian:
+                random_num = randint(0, len(road.get_pedestrian_lanes()) - 1)
+                pedestrian_lane = road.get_pedestrian_lanes()[random_num]
+                if pedestrian_lane.is_spawnable():
+                    pedestrian_lane.add_pedestrian(image.load("simulation/images/pedestrian.png"))
+                    has_spawned_pedestrian = True
+            if has_spawned_pedestrian and has_spawned_cyclist:
+                has_spawned_pedestrian = False
+                has_spawned_cyclist = False
+                break
 
 
 bus_numbers = {
@@ -439,7 +500,7 @@ def get_bus_connection(road_number, bus_number):
 
 def spawn_random_bus():
     while running:
-        time.wait(6000)
+        time.wait(5000)
         while True:
             road = simulation.intersections[randint(0, 1)].get_roads()[randint(0, 2)]
             # road = simulation.intersections[0].get_roads()[1]
@@ -456,7 +517,8 @@ def spawn_random_bus():
                 if randint(0, 5) == 0:
                     road = simulation.intersections[1].get_roads()[2]
                     if road.get_car_lanes()[3].is_spawnable():
-                        road.get_car_lanes()[3].add_bus(get_bus_number(road.get_name()), sprite=image.load("simulation/images/bus.png"))
+                        road.get_car_lanes()[3].add_bus(get_bus_number(road.get_name()),
+                                                        sprite=image.load("simulation/images/bus.png"))
 
 
 client = Client()
@@ -528,7 +590,7 @@ while running:
     display.flip()
 
     # 24 fps
-    clock.tick(24)
+    clock.tick(60)
 # except Exception as e:
 #     print(e)
 
