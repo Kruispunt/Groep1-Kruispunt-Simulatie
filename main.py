@@ -523,10 +523,10 @@ def spawn_random_bus():
 
 client = Client()
 
-# ip = input('Enter the ip: ')
-# port = int(input('Enter the port: '))
-ip = '127.0.0.1'
-port = 12345
+ip = input('Enter the ip: ')
+port = int(input('Enter the port: '))
+# ip = '127.0.0.1'
+# port = 12345
 client.connect(ip, port)
 print('Connected')
 
@@ -590,7 +590,7 @@ while running:
     display.flip()
 
     # 24 fps
-    clock.tick(60)
+    clock.tick(24)
 # except Exception as e:
 #     print(e)
 
