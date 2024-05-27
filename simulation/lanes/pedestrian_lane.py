@@ -36,7 +36,7 @@ class Pedestrian_Lane(Lane):
                                      size + 5)
 
         inbetween_start_and_light = self._light_position.copy() if self.inbetween_light_positions == [] else self.inbetween_light_positions[0].copy()
-        self._things.append(Pedestrian(1.1, thing_position, sprite, destination=inbetween_start_and_light, size=size))
+        self._things.append(Pedestrian(1.5, thing_position, sprite, destination=inbetween_start_and_light, size=size))
 
     def to_json(self):
         return {
