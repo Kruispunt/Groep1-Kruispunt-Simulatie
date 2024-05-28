@@ -7,11 +7,11 @@ from simulation.objects.pedestrian import Pedestrian
 
 class Pedestrian_Lane(Lane):
     def __init__(self, start_position, inbetween_positions, light_position, inbetween_light_positions=None,
-                 connection=None, spawnable=True, chance_split=None):
+                 connection=None, spawnable=True, split=None):
         if inbetween_light_positions is None:
             inbetween_light_positions = []
         self.inbetween_light_positions = inbetween_light_positions
-        self.chance_split = chance_split
+        self.split = split
         self._init(start_position, inbetween_positions, light_position, connection, spawnable)
 
     def add_pedestrian(self, sprite=None):
