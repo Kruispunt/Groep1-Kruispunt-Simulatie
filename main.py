@@ -101,7 +101,7 @@ def draw_cars():
                             else:
                                 if car_lane.get_connection() is not None:
                                     car_lane.get_connection().add_car(car.get_size(), is_prio=car.is_priority,
-                                                                      sprite=car.get_original_sprite(), is_different=car.is_different)
+                                                                      sprite=car.get_original_sprite())
                                 car_lane.remove(car)
 
                     scaled_width = int(car.get_original_sprite().get_width() * scale_factor)
@@ -173,9 +173,9 @@ def draw_cyclists():
                                     cyclist.move_to(
                                         cyclist_lane.inbetween_light_positions[next_position_index_light + 1])
                                 else:
-                                    if cyclist_lane.chance_split is not None:
+                                    if cyclist_lane.split is not None:
                                         if randint(0, 1) == 0:
-                                            cyclist_lane.chance_split.add_cyclist(cyclist.get_original_sprite())
+                                            cyclist_lane.split.add_cyclist(cyclist.get_original_sprite())
                                             cyclist_lane.remove(cyclist)
                                             continue
                                     cyclist.move_to(cyclist_lane.get_light_position())
@@ -255,9 +255,9 @@ def draw_pedestrians():
                                     pedestrian.move_to(
                                         pedestrian_lane.inbetween_light_positions[next_position_index_light + 1])
                                 else:
-                                    if pedestrian_lane.chance_split is not None:
+                                    if pedestrian_lane.split is not None:
                                         if randint(0, 1) == 0:
-                                            pedestrian_lane.chance_split.add_pedestrian(
+                                            pedestrian_lane.split.add_pedestrian(
                                                 pedestrian.get_original_sprite())
                                             pedestrian_lane.remove(pedestrian)
                                             continue
@@ -332,7 +332,7 @@ def draw_busses():
                                 if connection is not None:
                                     if isinstance(connection, Car_Lane):
                                         connection.add_car(bus.get_size(), is_prio=False,
-                                                           sprite=bus.get_original_sprite(), is_different=True)
+                                                           sprite=bus.get_original_sprite())
                                     else:
                                         connection.add_bus(bus.get_number(),
                                                            going_linked_connection=bus.is_going_linked_connection(),
@@ -500,7 +500,7 @@ def get_bus_connection(road_number, bus_number):
 
 def spawn_random_bus():
     while running:
-        time.wait(5000)
+        time.wait(15000)
         while True:
             road = simulation.intersections[randint(0, 1)].get_roads()[randint(0, 2)]
             # road = simulation.intersections[0].get_roads()[1]
